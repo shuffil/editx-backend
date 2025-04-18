@@ -3,10 +3,19 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-import { startProcessing } from '../orchestrator.js'; // Make sure this path is correct
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' }); // Ensure this folder exists
+
+let startProcessing;
+
+try {
+  const orchestrator = await import('../orchestrator.js');
+  startProcessing = orchestrator.startProcessing;
+  console.log('✅ startProcessing successfully imported');
+} catch (err) {
+  console.error('❌ Failed to import orchestrator.js:', err.message);
+}
 
 router.post('/', upload.array('videos'), async (req, res) => {
   const files = req.files;
