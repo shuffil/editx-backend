@@ -8,7 +8,7 @@ export default function subtitleAgent(sessionId, context) {
 
     const inputPath = path.join('uploads', sessionId, 'IMG_6296.mp4');
     const outputDir = path.join('temp', sessionId, 'subtitles');
-    const outputPath = path.join(outputDir, 'subtitles.ass');
+    const outputPath = path.join(outputDir, 'subtitles.srt'); // <- updated
 
     try {
       fs.mkdirSync(outputDir, { recursive: true });
@@ -17,7 +17,7 @@ export default function subtitleAgent(sessionId, context) {
       return reject(err);
     }
 
-    const command = `whisper --model base --output_format ass --output_dir "${outputDir}" "${inputPath}"`;
+    const command = `whisper --model base --output_format srt --output_dir "${outputDir}" "${inputPath}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
