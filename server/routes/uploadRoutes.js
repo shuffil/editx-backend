@@ -9,27 +9,31 @@ const upload = multer({ dest: 'uploads/' });
 
 router.post('/', upload.array('videos'), async (req, res) => {
   try {
-    console.log('📩 POST /upload route hit');
+    console.log('📩 Reached POST /upload');
 
     const context = req.body.context || '';
     const sessionId = uuidv4();
 
     const files = Array.isArray(req.files) ? req.files : [];
     console.log(`✅ Upload received. Session: ${sessionId}, Files: ${files.length}`);
-    console.log('🔍 Raw file structure:', files);
-    console.log('📦 Filenames:', files.map(f => f?.originalname ?? '[no name]'));
 
+    // Ultra-safe log: show files one by one
     if (!files.length) {
-      console.error('❌ No valid video files received.');
-      return res.status(400).json({ error: 'No video files provided.' });
+      console.error('❌ No files received or req.files is not an array');
+      return res.status(400).json({ error: 'No videos received' });
+    }
+
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      console.log(`📦 File[${i}] → originalname: ${f?.originalname}, path: ${f?.path}`);
     }
 
     const sessionPath = path.join('uploads', sessionId);
-    console.log(`📁 Creating session folder at: ${sessionPath}`);
+    console.log(`📁 Creating folder: ${sessionPath}`);
     fs.mkdirSync(sessionPath, { recursive: true });
 
     for (const file of files) {
-      const originalName = file?.originalname ?? `unnamed-${Date.now()}.mp4`;
+      const originalName = file?.originalname || `unnamed-${Date.now()}.mp4`;
       const destination = path.join(sessionPath, originalName);
       console.log(`➡️ Moving file: ${file.path} → ${destination}`);
       fs.renameSync(file.path, destination);
@@ -41,12 +45,12 @@ router.post('/', upload.array('videos'), async (req, res) => {
 
     console.log(`🚀 Starting processing for session: ${sessionId}`);
     await startProcessing(sessionId, context, files);
-    console.log(`🎉 Finished processing for session: ${sessionId}`);
+    console.log(`🎉 Processing complete for session: ${sessionId}`);
 
     res.json({ sessionId });
   } catch (err) {
-    console.error(`❌ TOTAL FAILURE in route: ${err.stack}`);
-    res.status(500).json({ error: 'Upload failed at top level' });
+    console.error('❌ Caught error in upload route:', err.stack);
+    res.status(500).json({ error: 'Upload pipeline failed' });
   }
 });
 
