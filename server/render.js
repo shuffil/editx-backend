@@ -38,4 +38,4 @@ function render(sessionId) {
   });
 }
 
-module.exports = render;
+export default render;
