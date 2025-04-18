@@ -1,25 +1,34 @@
-// Placeholder for narrationAgent.js
-// This agent will generate a spoken story or commentary track for the final video.
-
+import fs from 'fs';
+import path from 'path';
 import { exec } from 'child_process';
 
-function narrationAgent(sessionId, context) {
+export default function narrationAgent(sessionId, context) {
   return new Promise((resolve, reject) => {
     console.log(`NarrationAgent started for session: ${sessionId}`);
-    const outputPath = `../temp/${sessionId}/audio/narration.mp3`;
 
-    // Example command to generate narration using TTS
-    const command = `echo "This is a sample narration." | text2wave -o ${outputPath}`;
+    const outputDir = path.join('temp', sessionId, 'audio');
+    const outputPath = path.join(outputDir, 'narration.mp3');
+
+    try {
+      fs.mkdirSync(outputDir, { recursive: true });
+    } catch (err) {
+      console.error(`❌ NarrationAgent could not create audio folder: ${err.message}`);
+      return reject(err);
+    }
+
+    // TEMPORARY: Generate a simple tone as placeholder narration
+    const command = `ffmpeg -f lavfi -i "sine=frequency=600:duration=2" -c:a libmp3lame "${outputPath}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
-        console.error(`NarrationAgent error: ${error.message}`);
+        console.error(`❌ NarrationAgent error: ${error.message}`);
         return reject(error);
       }
       if (stderr) {
-        console.error(`NarrationAgent stderr: ${stderr}`);
+        console.warn(`⚠️ NarrationAgent stderr: ${stderr}`);
       }
-      console.log(`NarrationAgent stdout: ${stdout}`);
+
+      console.log(`✅ NarrationAgent completed for session: ${sessionId}`);
       resolve({
         status: "success",
         outputFiles: [outputPath]
@@ -27,5 +36,3 @@ function narrationAgent(sessionId, context) {
     });
   });
 }
-
-export default narrationAgent;
