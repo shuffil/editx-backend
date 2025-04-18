@@ -22,9 +22,15 @@ router.post('/', upload.array('videos'), async (req, res) => {
       return res.status(400).json({ error: 'No video files provided.' });
     }
 
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      console.log(`📦 File[${i}] → originalname: ${f?.originalname}, path: ${f?.path}`);
+    console.log('📦 Safely logging received files:');
+    try {
+      files.forEach((file, i) => {
+        const name = file?.originalname ?? '[no originalname]';
+        const p = file?.path ?? '[no path]';
+        console.log(`📦 File[${i}]: name=${name}, path=${p}`);
+      });
+    } catch (logErr) {
+      console.error(`❌ Error during file logging: ${logErr.message}`);
     }
 
     const sessionPath = path.join('uploads', sessionId);
@@ -32,7 +38,7 @@ router.post('/', upload.array('videos'), async (req, res) => {
     fs.mkdirSync(sessionPath, { recursive: true });
 
     for (const file of files) {
-      const originalName = file?.originalname ?? `unnamed-${Date.now()}.mp4`;
+      const originalName = file?.originalname || `unnamed-${Date.now()}.mp4`;
       const destination = path.join(sessionPath, originalName);
       console.log(`➡️ Copying file: ${file.path} → ${destination}`);
       fs.copyFileSync(file.path, destination);
@@ -49,7 +55,7 @@ router.post('/', upload.array('videos'), async (req, res) => {
 
     res.json({ sessionId });
   } catch (err) {
-    console.error('❌ Critical error in upload route:', err.stack);
+    console.error('❌ Caught error in upload route:', err.stack);
     res.status(500).json({ error: 'Upload failed at top level.' });
   }
 });
