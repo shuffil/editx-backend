@@ -1,38 +1,54 @@
+// subtitleAgent.js
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
+import axios from 'axios';
+import FormData from 'form-data';
 
-export default function subtitleAgent(sessionId, context) {
-  return new Promise((resolve, reject) => {
-    console.log(`SubtitleAgent started for session: ${sessionId}`);
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-    const inputPath = path.join('uploads', sessionId, 'IMG_6296.mp4');
-    const outputDir = path.join('temp', sessionId, 'subtitles');
-    const outputPath = path.join(outputDir, 'subtitles.srt'); // <- updated
+async function subtitleAgent(sessionId) {
+  console.log(`SubtitleAgent started for session: ${sessionId}`);
 
-    try {
-      fs.mkdirSync(outputDir, { recursive: true });
-    } catch (err) {
-      console.error(`❌ Could not create subtitle folder: ${err.message}`);
-      return reject(err);
-    }
+  const uploadPath = path.resolve(`uploads/${sessionId}`);
+  const videoFile = fs.readdirSync(uploadPath).find(file => file.endsWith('.mp4'));
+  const inputPath = path.join(uploadPath, videoFile);
+  const audioPath = path.resolve(`temp/${sessionId}/audio.wav`);
+  const subtitlePath = path.resolve(`temp/${sessionId}/subtitles/subtitles.srt`);
 
-    const command = `whisper --model base --output_format srt --output_dir "${outputDir}" "${inputPath}"`;
+  // Ensure subtitle folder exists
+  fs.mkdirSync(path.dirname(subtitlePath), { recursive: true });
 
+  // Step 1: Extract audio from video
+  await new Promise((resolve, reject) => {
+    const command = `ffmpeg -i "${inputPath}" -vn -acodec pcm_s16le -ar 44100 -ac 1 "${audioPath}" -y`;
     exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`❌ SubtitleAgent error: ${error.message}`);
-        return reject(error);
-      }
-      if (stderr) {
-        console.warn(`⚠️ SubtitleAgent stderr: ${stderr}`);
-      }
-
-      console.log(`✅ SubtitleAgent completed for session: ${sessionId}`);
-      resolve({
-        status: "success",
-        outputFiles: [outputPath]
-      });
+      if (error) return reject(error);
+      resolve();
     });
   });
+
+  // Step 2: Send audio to OpenAI Whisper
+  const form = new FormData();
+  form.append('file', fs.createReadStream(audioPath));
+  form.append('model', 'whisper-1');
+  form.append('response_format', 'srt');
+
+  const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', form, {
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      ...form.getHeaders()
+    }
+  });
+
+  // Step 3: Save the result to a subtitles file
+  fs.writeFileSync(subtitlePath, response.data);
+
+  console.log(`✅ Subtitles saved to ${subtitlePath}`);
+  return {
+    status: 'success',
+    outputFiles: [subtitlePath]
+  };
 }
+
+export default subtitleAgent;
