@@ -1,63 +1,41 @@
 import express from 'express';
 import multer from 'multer';
-import pkg from 'uuid'; // 👈 CommonJS interop
-const { v4: uuidv4 } = pkg;
-
+import { v4 as uuidv4 } from 'uuid'; // ✅ Correct ESM import
 import fs from 'fs';
 import path from 'path';
+import { startProcessing } from '../orchestrator.js';
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
 
 router.post('/', upload.array('videos'), async (req, res) => {
   try {
-    console.log('📩 Reached POST /upload');
-
+    console.log(`📩 Reached POST /upload`);
+    const files = req.files;
     const context = req.body.context || '';
     const sessionId = uuidv4();
-    const files = Array.isArray(req.files) ? req.files : [];
 
     console.log(`✅ Upload received. Session: ${sessionId}, Files: ${files.length}`);
-
-    if (!files.length) {
-      console.error('❌ No video files received.');
-      return res.status(400).json({ error: 'No video files provided.' });
-    }
-
-    console.log('📦 Safely logging received files:');
-    try {
-      files.forEach((file, i) => {
-        const name = file?.originalname ?? '[no originalname]';
-        const p = file?.path ?? '[no path]';
-        console.log(`📦 File[${i}]: name=${name}, path=${p}`);
-      });
-    } catch (logErr) {
-      console.error(`❌ Error during file logging: ${logErr.message}`);
-    }
+    console.log(`📦 Safely logging received files:`);
+    files.forEach((f, i) => {
+      console.log(`📦 File[${i}]: name=${f.originalname}, path=${f.path}`);
+    });
 
     const sessionPath = path.join('uploads', sessionId);
-    console.log(`📁 Creating session folder at: ${sessionPath}`);
     fs.mkdirSync(sessionPath, { recursive: true });
 
-    for (const file of files) {
-      const originalName = file?.originalname || `unnamed-${Date.now()}.mp4`;
-      const destination = path.join(sessionPath, originalName);
+    files.forEach(file => {
+      const destination = path.join(sessionPath, file.originalname);
       console.log(`➡️ Copying file: ${file.path} → ${destination}`);
-      fs.copyFileSync(file.path, destination);
-      fs.unlinkSync(file.path);
-    }
+      fs.renameSync(file.path, destination);
+    });
 
-    console.log('📦 Files copied. Importing orchestrator...');
-    const { startProcessing } = await import('../orchestrator.js');
-    console.log('✅ Orchestrator module loaded');
-
-    console.log(`🚀 Starting processing for session: ${sessionId}`);
+    console.log(`📦 Files copied. Importing orchestrator...`);
     await startProcessing(sessionId, context, files);
-    console.log(`🎉 Processing complete for session: ${sessionId}`);
 
     res.json({ sessionId });
   } catch (err) {
-    console.error('❌ Caught error in upload route:', err.stack);
+    console.error(`❌ Caught error in upload route: ${err}`);
     res.status(500).json({ error: 'Upload failed at top level.' });
   }
 });
