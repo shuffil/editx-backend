@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 
@@ -5,12 +6,10 @@ export default function fxAgent(sessionId, context) {
   return new Promise((resolve, reject) => {
     console.log(`FXAgent started for session: ${sessionId}`);
 
-    // Safe path construction
     const inputPath = path.join('uploads', sessionId, 'IMG_6296.mp4');
     const outputDir = path.join('temp', sessionId, 'fx');
     const outputPath = path.join(outputDir, 'fx_clip_01.mp4');
 
-    // Ensure temp/fx directory exists
     try {
       fs.mkdirSync(outputDir, { recursive: true });
     } catch (err) {
