@@ -1,7 +1,7 @@
 // Placeholder for narrationAgent.js
 // This agent will generate a spoken story or commentary track for the final video.
 
-const { exec } = require('child_process');
+import { exec } from 'child_process';
 
 function narrationAgent(sessionId, context) {
   return new Promise((resolve, reject) => {

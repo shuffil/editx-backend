@@ -1,7 +1,7 @@
 // Placeholder for fxAgent.js
 // This agent will apply visual tone, color grading, and contrast/brightness tweaks to video clips.
 
-const { exec } = require('child_process');
+import { exec } from 'child_process';
 
 function fxAgent(sessionId, context) {
   return new Promise((resolve, reject) => {

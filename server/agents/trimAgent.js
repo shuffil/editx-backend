@@ -1,7 +1,7 @@
 // Placeholder for trimAgent.js
 // This agent will trim unnecessary parts of each video and shorten long scenes.
 
-const { exec } = require('child_process');
+import { exec } from 'child_process';
 
 function trimAgent(sessionId, context) {
   return new Promise((resolve, reject) => {

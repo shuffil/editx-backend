@@ -1,7 +1,7 @@
 // Placeholder for subtitleAgent.js
 // This agent will transcribe speech from uploaded video clips.
 
-const { exec } = require('child_process');
+import { exec } from 'child_process';
 
 function subtitleAgent(sessionId, context) {
   return new Promise((resolve, reject) => {

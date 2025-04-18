@@ -1,7 +1,7 @@
 // Placeholder for musicAgent.js
 // This agent will add background music to the final composition.
 
-const { exec } = require('child_process');
+import { exec } from 'child_process';
 
 function musicAgent(sessionId, context) {
   return new Promise((resolve, reject) => {
