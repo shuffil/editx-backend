@@ -14,18 +14,19 @@ router.post('/', upload.array('videos'), async (req, res) => {
 
   console.log(`✅ Upload received. Session: ${sessionId}, Files: ${files.length}`);
 
-  const sessionPath = path.join('uploads', sessionId);
-  fs.mkdirSync(sessionPath, { recursive: true });
-
   try {
-    // 🧪 Try moving files
-    files.forEach(file => {
-      const destination = path.join(sessionPath, file.originalname);
-      console.log(`➡️ Moving file to: ${destination}`);
-      fs.renameSync(file.path, destination);
-    });
+    const sessionPath = path.join('uploads', sessionId);
+    console.log(`📁 Creating session folder: ${sessionPath}`);
+    fs.mkdirSync(sessionPath, { recursive: true });
 
-    console.log('✅ All files moved, importing orchestrator...');
+    for (const file of files) {
+      const destination = path.join(sessionPath, file.originalname);
+      console.log(`➡️ Moving ${file.path} → ${destination}`);
+      fs.renameSync(file.path, destination);
+    }
+
+    console.log('✅ All files moved. Attempting to import orchestrator...');
+
     const { startProcessing } = await import('../orchestrator.js');
     console.log('✅ Orchestrator module imported successfully');
 
@@ -35,8 +36,8 @@ router.post('/', upload.array('videos'), async (req, res) => {
 
     res.json({ sessionId });
   } catch (err) {
-    console.error(`❌ Critical error during upload pipeline: ${err.message}`);
-    res.status(500).json({ error: 'Upload processing failed' });
+    console.error(`❌ Critical error: ${err.stack}`);
+    res.status(500).json({ error: 'Internal server error during upload.' });
   }
 });
 
