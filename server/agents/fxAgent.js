@@ -1,34 +1,34 @@
-import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { exec } from 'child_process';
 
-export default function fxAgent(sessionId, context, files) {
+export default function fxAgent(sessionId, context) {
   return new Promise((resolve, reject) => {
     console.log(`FXAgent started for session: ${sessionId}`);
 
-    const sessionFolder = `uploads/${sessionId}`;
-    const tempFolder = `temp/${sessionId}/fx`;
-    fs.mkdirSync(tempFolder, { recursive: true });
+    const uploadPath = path.join('uploads', sessionId);
+    const tempPath = path.join('temp', sessionId, 'fx');
+    if (!fs.existsSync(tempPath)) fs.mkdirSync(tempPath, { recursive: true });
 
-    const firstFile = files?.[0]?.originalname || 'input.mp4';
-    const inputPath = path.join(sessionFolder, firstFile);
-    const outputPath = path.join(tempFolder, 'fx_clip_01.mp4');
+    // Find the first uploaded MP4 file
+    const files = fs.readdirSync(uploadPath);
+    const firstVideo = files.find(f => f.toLowerCase().endsWith('.mp4'));
+    if (!firstVideo) {
+      return reject(new Error('No MP4 file found in upload directory.'));
+    }
+
+    const inputPath = path.join(uploadPath, firstVideo);
+    const outputPath = path.join(tempPath, 'fx_clip_01.mp4');
 
     const command = `ffmpeg -i ${inputPath} -vf "eq=contrast=1.5:saturation=1.2" -c:a copy ${outputPath}`;
-
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`FXAgent error: ${error.message}`);
         return reject(error);
       }
-      if (stderr) {
-        console.warn(`⚠️ FXAgent stderr: ${stderr}`);
-      }
+      if (stderr) console.warn(`⚠️ FXAgent stderr: ${stderr}`);
       console.log(`✅ FXAgent completed for session: ${sessionId}`);
-      resolve({
-        status: 'success',
-        outputFiles: [outputPath],
-      });
+      resolve({ status: 'success', output: outputPath });
     });
   });
 }
