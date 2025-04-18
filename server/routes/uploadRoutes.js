@@ -3,19 +3,10 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
+import { startProcessing } from '../orchestrator.js';
 
 const router = express.Router();
-const upload = multer({ dest: 'uploads/' }); // Ensure this folder exists
-
-let startProcessing;
-
-try {
-  const orchestrator = await import('../orchestrator.js');
-  startProcessing = orchestrator.startProcessing;
-  console.log('✅ startProcessing successfully imported');
-} catch (err) {
-  console.error('❌ Failed to import orchestrator.js:', err.message);
-}
+const upload = multer({ dest: 'uploads/' });
 
 router.post('/', upload.array('videos'), async (req, res) => {
   const files = req.files;
@@ -33,11 +24,13 @@ router.post('/', upload.array('videos'), async (req, res) => {
   });
 
   try {
-    console.log(`✅ About to start orchestrator for session: ${sessionId}`);
+    console.log(`🧪 About to call startProcessing`);
     await startProcessing(sessionId, context, files);
+    console.log('✅ Finished calling startProcessing');
+
     res.json({ sessionId });
   } catch (err) {
-    console.error(`❌ Error during orchestration: ${err.message}`);
+    console.error(`❌ Error during upload orchestration: ${err.message}`);
     res.status(500).json({ error: 'Upload processing failed' });
   }
 });

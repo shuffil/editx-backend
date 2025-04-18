@@ -1,12 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 
+console.log('🧠 Testing orchestrator module load...');
+
 import fxAgent from './agents/fxAgent.js';
 import trimAgent from './agents/trimAgent.js';
 import musicAgent from './agents/musicAgent.js';
 import narrationAgent from './agents/narrationAgent.js';
 import subtitleAgent from './agents/subtitleAgent.js';
 import render from './render.js';
+
+console.log('✅ orchestrator module loaded');
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
