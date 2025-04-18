@@ -3,10 +3,10 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-import { startProcessing } from '../orchestrator.js';
+import { startProcessing } from '../orchestrator.js'; // Make sure this path is correct
 
 const router = express.Router();
-const upload = multer({ dest: 'uploads/' }); // ensure this folder exists
+const upload = multer({ dest: 'uploads/' }); // Ensure this folder exists
 
 router.post('/', upload.array('videos'), async (req, res) => {
   const files = req.files;
@@ -15,22 +15,20 @@ router.post('/', upload.array('videos'), async (req, res) => {
 
   console.log(`Upload received. Session: ${sessionId}, Files: ${files.length}`);
 
-  // Create a session-specific folder inside /uploads/
   const sessionPath = path.join('uploads', sessionId);
   fs.mkdirSync(sessionPath, { recursive: true });
 
-  // Move uploaded files into the session folder
   files.forEach(file => {
     const destination = path.join(sessionPath, file.originalname);
     fs.renameSync(file.path, destination);
   });
 
   try {
-    // Kick off orchestration (runs agents + render)
-    startProcessing(sessionId, context, files);
+    console.log(`✅ About to start orchestrator for session: ${sessionId}`);
+    await startProcessing(sessionId, context, files);
     res.json({ sessionId });
   } catch (err) {
-    console.error(`Error during upload processing: ${err.message}`);
+    console.error(`❌ Error during orchestration: ${err.message}`);
     res.status(500).json({ error: 'Upload processing failed' });
   }
 });
