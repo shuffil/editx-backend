@@ -13,14 +13,13 @@ router.post('/', upload.array('videos'), async (req, res) => {
 
     const context = req.body.context || '';
     const sessionId = uuidv4();
-
     const files = Array.isArray(req.files) ? req.files : [];
+
     console.log(`✅ Upload received. Session: ${sessionId}, Files: ${files.length}`);
 
-    // Ultra-safe log: show files one by one
     if (!files.length) {
-      console.error('❌ No files received or req.files is not an array');
-      return res.status(400).json({ error: 'No videos received' });
+      console.error('❌ No video files received.');
+      return res.status(400).json({ error: 'No video files provided.' });
     }
 
     for (let i = 0; i < files.length; i++) {
@@ -29,17 +28,18 @@ router.post('/', upload.array('videos'), async (req, res) => {
     }
 
     const sessionPath = path.join('uploads', sessionId);
-    console.log(`📁 Creating folder: ${sessionPath}`);
+    console.log(`📁 Creating session folder at: ${sessionPath}`);
     fs.mkdirSync(sessionPath, { recursive: true });
 
     for (const file of files) {
-      const originalName = file?.originalname || `unnamed-${Date.now()}.mp4`;
+      const originalName = file?.originalname ?? `unnamed-${Date.now()}.mp4`;
       const destination = path.join(sessionPath, originalName);
-      console.log(`➡️ Moving file: ${file.path} → ${destination}`);
-      fs.renameSync(file.path, destination);
+      console.log(`➡️ Copying file: ${file.path} → ${destination}`);
+      fs.copyFileSync(file.path, destination);
+      fs.unlinkSync(file.path);
     }
 
-    console.log('📦 Files moved. Importing orchestrator...');
+    console.log('📦 Files copied. Importing orchestrator...');
     const { startProcessing } = await import('../orchestrator.js');
     console.log('✅ Orchestrator module loaded');
 
@@ -49,8 +49,8 @@ router.post('/', upload.array('videos'), async (req, res) => {
 
     res.json({ sessionId });
   } catch (err) {
-    console.error('❌ Caught error in upload route:', err.stack);
-    res.status(500).json({ error: 'Upload pipeline failed' });
+    console.error('❌ Critical error in upload route:', err.stack);
+    res.status(500).json({ error: 'Upload failed at top level.' });
   }
 });
 
