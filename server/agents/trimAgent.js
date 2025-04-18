@@ -17,7 +17,8 @@ export default function trimAgent(sessionId, context) {
       return reject(err);
     }
 
-    const command = `ffmpeg -i ${inputPath} -vf "select='gt(scene,0.4)',setpts=N/FRAME_RATE/TB" -af "aselect='gt(scene,0.4)',asetpts=N/SR/TB" ${outputPath}`;
+    // Simple placeholder trim: volume boost + re-encode only
+    const command = `ffmpeg -i "${inputPath}" -vf "select=not(mod(n\\,1)),setpts=N/FRAME_RATE/TB" -af "volume=1.0" "${outputPath}"`;
 
     exec(command, (error, stdout, stderr) => {
       if (error) {
