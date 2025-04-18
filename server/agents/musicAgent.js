@@ -28,4 +28,4 @@ function musicAgent(sessionId, context) {
   });
 }
 
-module.exports = musicAgent;
+export default musicAgent;

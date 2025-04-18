@@ -29,4 +29,4 @@ function trimAgent(sessionId, context) {
   });
 }
 
-module.exports = trimAgent;
+export default trimAgent;

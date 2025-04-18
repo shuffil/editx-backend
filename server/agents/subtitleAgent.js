@@ -29,4 +29,4 @@ function subtitleAgent(sessionId, context) {
   });
 }
 
-module.exports = subtitleAgent;
+export default subtitleAgent;

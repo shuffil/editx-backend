@@ -28,4 +28,4 @@ function narrationAgent(sessionId, context) {
   });
 }
 
-module.exports = narrationAgent;
+export default narrationAgent;

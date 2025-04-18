@@ -29,4 +29,4 @@ function fxAgent(sessionId, context) {
   });
 }
 
-module.exports = fxAgent;
+export default fxAgent;
