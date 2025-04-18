@@ -8,25 +8,30 @@ const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
 
 router.post('/', upload.array('videos'), async (req, res) => {
+  const context = req.body.context || '';
+  const sessionId = uuidv4();
+
+  console.log(`✅ Upload received. Session: ${sessionId}`);
+
+  let files;
   try {
-    console.log('📩 POST /upload route hit');
+    // Validate and log files
+    files = Array.isArray(req.files) ? req.files : [];
+    console.log(`🔍 Raw file list:`, files);
+    console.log(`📦 Filenames:`, files.map(f => f?.originalname ?? '[no name]'));
+  } catch (err) {
+    console.error('❌ Error parsing req.files:', err.message);
+    return res.status(500).json({ error: 'File parsing failed.' });
+  }
 
-    const files = req.files || [];
-    const context = req.body.context || '';
-    const sessionId = uuidv4();
+  if (!files.length) {
+    console.error('❌ No valid files received.');
+    return res.status(400).json({ error: 'No video files provided.' });
+  }
 
-    console.log(`✅ Upload received. Session: ${sessionId}, Files: ${files.length}`);
-    console.log('🔍 Verifying file structure:', files);
-
-    if (!Array.isArray(files) || files.length === 0) {
-      console.error('❌ No valid files received.');
-      return res.status(400).json({ error: 'No video files provided.' });
-    }
-
-    console.log(`📦 Files:`, files.map(f => f?.originalname ?? '[no name]'));
-
+  try {
     const sessionPath = path.join('uploads', sessionId);
-    console.log(`📁 Creating session folder: ${sessionPath}`);
+    console.log(`📁 Creating session folder at: ${sessionPath}`);
     fs.mkdirSync(sessionPath, { recursive: true });
 
     for (const file of files) {
@@ -36,18 +41,18 @@ router.post('/', upload.array('videos'), async (req, res) => {
       fs.renameSync(file.path, destination);
     }
 
-    console.log('📦 Files moved successfully. Importing orchestrator...');
+    console.log('📦 All files moved. Importing orchestrator...');
     const { startProcessing } = await import('../orchestrator.js');
-    console.log('✅ Orchestrator module imported');
+    console.log('✅ Orchestrator module loaded');
 
-    console.log(`🚀 Starting orchestration for session: ${sessionId}`);
+    console.log(`🚀 Starting processing for session: ${sessionId}`);
     await startProcessing(sessionId, context, files);
-    console.log(`🎉 Orchestration complete for session: ${sessionId}`);
+    console.log(`🎉 Finished processing for session: ${sessionId}`);
 
     res.json({ sessionId });
   } catch (err) {
-    console.error(`❌ Caught critical error: ${err.stack}`);
-    res.status(500).json({ error: 'Upload pipeline failed.' });
+    console.error(`❌ Fatal error in upload route: ${err.stack}`);
+    res.status(500).json({ error: 'Upload processing failed.' });
   }
 });
 
