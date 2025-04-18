@@ -7,4 +7,10 @@ services:
     startCommand: npm start
     envVars:
       - key: OPENAI_API_KEY
-        value: ${OPENAI_API_KEY} 
+        sync: false
+    buildFilter:
+      paths: 
+        - server/**
+        - orchestrator.js
+        - package.json
+        - render.yaml
