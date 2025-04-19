@@ -1,43 +1,52 @@
-// fxAgent.js
-import { exec } from "child_process";
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
+import { exec } from 'child_process';
 
 function fxAgent(sessionId, context) {
   return new Promise((resolve, reject) => {
     console.log(`FXAgent started for session: ${sessionId}`);
 
-    const sessionFolder = `uploads/${sessionId}`;
-    const tempFolder = `temp/${sessionId}/fx`;
-    fs.mkdirSync(tempFolder, { recursive: true });
+    const inputDir = path.join('uploads', sessionId);
+    const outputDir = path.join('temp', sessionId, 'fx');
+    fs.mkdirSync(outputDir, { recursive: true });
 
-    const inputFile = fs
-      .readdirSync(sessionFolder)
-      .find((file) => file.endsWith(".mp4"));
-    if (!inputFile) return reject("No .mp4 file found in upload folder.");
+    const inputFiles = fs.readdirSync(inputDir).filter(file => file.endsWith('.mp4'));
+    if (inputFiles.length === 0) {
+      return reject(new Error('No .mp4 files found in session upload folder.'));
+    }
 
-    const inputPath = path.join(sessionFolder, inputFile);
-    const compressedPath = path.join(tempFolder, "compressed.mp4");
-    const outputPath = path.join(tempFolder, "fx_clip_01.mp4");
+    const inputPath = path.join(inputDir, inputFiles[0]);
+    console.log(`🟡 Using input file: ${inputPath}`);
 
-    const compressCmd = `ffmpeg -i "${inputPath}" -vf "scale=720:-2" -preset fast -crf 28 -c:a copy "${compressedPath}"`;
-    const fxCmd = `ffmpeg -i "${compressedPath}" -vf "eq=contrast=1.5:saturation=1.2" -c:a copy "${outputPath}"`;
+    const compressedPath = path.join(outputDir, 'compressed.mp4');
+    const fxPath = path.join(outputDir, 'fx_clip_01.mp4');
 
-    // Step 1: Compress the video before FX
-    exec(compressCmd, (compressErr, _, compressStderr) => {
+    // Step 1: Compress to reduce resource usage
+    const compressCommand = `ffmpeg -y -i "${inputPath}" -vf "scale=720:-2" -preset veryfast -crf 28 -c:a copy "${compressedPath}"`;
+    console.log(`🔧 Running compression command:\n${compressCommand}`);
+
+    exec(compressCommand, (compressErr, compressStdout, compressStderr) => {
       if (compressErr) {
-        console.error("Compression error:", compressStderr);
+        console.error(`❌ Compression failed: ${compressErr.message}`);
         return reject(compressErr);
       }
+      console.log(`✅ Compression complete: ${compressedPath}`);
 
-      // Step 2: Apply visual FX
-      exec(fxCmd, (fxErr, stdout, fxStderr) => {
+      // Step 2: Apply FX
+      const fxCommand = `ffmpeg -y -i "${compressedPath}" -vf "eq=contrast=1.5:saturation=1.2" -c:a copy "${fxPath}"`;
+      console.log(`🎨 Running FX command:\n${fxCommand}`);
+
+      exec(fxCommand, (fxErr, fxStdout, fxStderr) => {
         if (fxErr) {
-          console.error("FX command failed:", fxStderr);
+          console.error(`❌ FXAgent error: ${fxErr.message}`);
           return reject(fxErr);
         }
-        console.log("FXAgent complete:", stdout);
-        resolve({ status: "success", output: outputPath });
+
+        console.log(`✅ FXAgent completed: ${fxPath}`);
+        resolve({
+          status: 'success',
+          outputFiles: [fxPath],
+        });
       });
     });
   });
