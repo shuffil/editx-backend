@@ -1,28 +1,66 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import uploadRoutes from './routes/uploadRoutes.js';
-import previewRoutes from './routes/previewRoutes.js';
+import express from "express";
+import cors from "cors";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import { v4 as uuidv4 } from "uuid";
+import orchestrator from "./orchestrator.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import { log, error as logError } from "./utils/logger.js";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-// ✅ Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/temp", express.static(path.join(__dirname, "temp")));
 
-// ✅ Routes
-app.use('/upload', uploadRoutes);    // Handle video + context upload
-app.use('/preview', previewRoutes);  // Serve generated video
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${uuidv4()}${ext}`);
+  },
+});
+const upload = multer({ storage });
 
-// Optional health check
-app.get('/', (req, res) => {
-  res.send('EditX backend is live');
+app.post("/upload", upload.array("files"), async (req, res) => {
+  const sessionId = uuidv4();
+  log("📩 Reached POST /upload", `Session: ${sessionId}, Files: ${req.files.length}`);
+
+  try {
+    req.files.forEach((file, i) => {
+      log(`📦 File[${i}]`, `name=${file.originalname}, path=${file.path}`);
+    });
+
+    const sessionFolder = path.join("uploads", sessionId);
+    fs.mkdirSync(sessionFolder, { recursive: true });
+
+    for (const file of req.files) {
+      const dest = path.join(sessionFolder, file.originalname);
+      fs.copyFileSync(file.path, dest);
+      log("➡️ Copying file", `${file.path} → ${dest}`);
+    }
+
+    log("📦 Files copied", "Importing orchestrator...");
+    const result = await orchestrator(sessionId);
+    res.json({ status: "success", sessionId, result });
+  } catch (err) {
+    logError("Upload Handler", err);
+    res.status(500).json({ error: "Upload failed. Please check your files and try again." });
+  }
 });
 
+app.use("/api", uploadRoutes);
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  log("Server", `Running on port ${PORT}`);
 });

@@ -1,51 +1,31 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { log, error as logError } from "./utils/logger.js";
 
-console.log('🧠 Testing orchestrator module load...');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-import fxAgent from './agents/fxAgent.js';
-import trimAgent from './agents/trimAgent.js';
-import musicAgent from './agents/musicAgent.js';
-import narrationAgent from './agents/narrationAgent.js';
-import subtitleAgent from './agents/subtitleAgent.js';
-import render from './render.js';
+const orchestrator = async (sessionId) => {
+  const sessionPath = path.join(__dirname, "uploads", sessionId);
+  const tempPath = path.join(__dirname, "temp", sessionId);
 
-console.log('✅ orchestrator module loaded');
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-export async function startProcessing(sessionId, context, filePaths = []) {
-  console.log(`🎬 Orchestrator activated for session: ${sessionId}`);
-
-  const tempPath = path.join(process.cwd(), 'temp', sessionId);
-  if (!fs.existsSync(tempPath)) {
-    fs.mkdirSync(tempPath, { recursive: true });
-    console.log(`📁 Created temp directory for session: ${tempPath}`);
-  }
+  log("🎬 Orchestrator", `Activated for session: ${sessionId}`);
+  fs.mkdirSync(tempPath, { recursive: true });
 
   try {
-    console.log('🎞️ Starting fxAgent...');
-    await fxAgent(sessionId, context, OPENAI_API_KEY);
+    // Sample placeholder for agent execution
+    log("🧠 Orchestrator", "Would start FX Agent, Trim Agent, etc. here");
 
-    console.log('✂️ Starting trimAgent...');
-    await trimAgent(sessionId, context, OPENAI_API_KEY);
+    // Simulate some step
+    // await fxAgent(sessionId);
+    // await trimAgent(sessionId);
 
-    console.log('🎵 Starting musicAgent...');
-    await musicAgent(sessionId, context, OPENAI_API_KEY);
-
-    console.log('🗣️ Starting narrationAgent...');
-    await narrationAgent(sessionId, context, OPENAI_API_KEY);
-
-    console.log('💬 Starting subtitleAgent...');
-    await subtitleAgent(sessionId, context, OPENAI_API_KEY);
-
-    console.log('✅ All agents completed successfully.');
-
-    console.log('🎥 Starting final render...');
-    await render(sessionId);
-
-    console.log(`🎉 Final render completed for session: ${sessionId}`);
+    return { message: "Processing complete." };
   } catch (err) {
-    console.error(`❌ Orchestration failed for session ${sessionId}: ${err.message}`);
+    logError("🧠 Orchestrator", err);
+    throw err;
   }
-}
+};
+
+export default orchestrator;
