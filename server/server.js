@@ -63,6 +63,18 @@ app.post("/upload", upload.array("files"), async (req, res) => {
 
 app.use("/api", uploadRoutes);
 
+app.get('/preview/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  const filePath = path.resolve('exports', `${sessionId}.mp4`);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send('Preview not found');
+  }
+
+  res.sendFile(filePath);
+});
+
+
 app.listen(PORT, () => {
   log("Server", `Running on port ${PORT}`);
 });
