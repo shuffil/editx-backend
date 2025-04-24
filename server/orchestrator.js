@@ -8,7 +8,8 @@ const __dirname = path.dirname(__filename);
 export async function startProcessing(sessionId) {
   console.log(`🎬 Orchestrator: Starting full pipeline for session: ${sessionId}`);
 
-  const sessionFolder = path.join(__dirname, 'uploads', sessionId);
+  // ✅ FIX: Resolve uploads path from project root
+  const sessionFolder = path.resolve('uploads', sessionId);
   const files = fs.readdirSync(sessionFolder).filter(f => f.endsWith('.mp4'));
 
   if (files.length === 0) {
@@ -17,9 +18,9 @@ export async function startProcessing(sessionId) {
 
   const firstFile = files[0];
   const inputPath = path.join(sessionFolder, firstFile);
-  const outputPath = path.join(__dirname, 'exports', `${sessionId}.mp4`);
+  const outputPath = path.resolve('exports', `${sessionId}.mp4`);
 
-  // Minimal simulation of processing (just copy the file for now)
+  // Simulate processing by copying the file
   fs.copyFileSync(inputPath, outputPath);
   console.log(`✅ Orchestrator: Preview generated at ${outputPath}`);
 
