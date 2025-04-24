@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 import orchestrator from "./orchestrator.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { log, error as logError } from "./utils/logger.js";
+import previewRoutes from './routes/previewRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +20,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use('/preview', previewRoutes);
 app.use("/temp", express.static(path.join(__dirname, "temp")));
 
 const storage = multer.diskStorage({
