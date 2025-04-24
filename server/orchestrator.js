@@ -1,31 +1,27 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { log, error as logError } from "./utils/logger.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const orchestrator = async (sessionId) => {
-  const sessionPath = path.join(__dirname, "uploads", sessionId);
-  const tempPath = path.join(__dirname, "temp", sessionId);
+export async function startProcessing(sessionId) {
+  console.log(`🎬 Orchestrator: Starting full pipeline for session: ${sessionId}`);
 
-  log("🎬 Orchestrator", `Activated for session: ${sessionId}`);
-  fs.mkdirSync(tempPath, { recursive: true });
+  const sessionFolder = path.join(__dirname, 'uploads', sessionId);
+  const files = fs.readdirSync(sessionFolder).filter(f => f.endsWith('.mp4'));
 
-  try {
-    // Sample placeholder for agent execution
-    log("🧠 Orchestrator", "Would start FX Agent, Trim Agent, etc. here");
-
-    // Simulate some step
-    // await fxAgent(sessionId);
-    // await trimAgent(sessionId);
-
-    return { message: "Processing complete." };
-  } catch (err) {
-    logError("🧠 Orchestrator", err);
-    throw err;
+  if (files.length === 0) {
+    throw new Error('No MP4 files found in session folder');
   }
-};
 
-export default orchestrator;
+  const firstFile = files[0];
+  const inputPath = path.join(sessionFolder, firstFile);
+  const outputPath = path.join(__dirname, 'exports', `${sessionId}.mp4`);
+
+  // Minimal simulation of processing (just copy the file for now)
+  fs.copyFileSync(inputPath, outputPath);
+  console.log(`✅ Orchestrator: Preview generated at ${outputPath}`);
+
+  return { preview: `/preview/${sessionId}` };
+}
