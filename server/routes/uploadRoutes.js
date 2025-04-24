@@ -32,4 +32,16 @@ router.post('/upload', upload.array('videos', 10), async (req, res) => {
   res.json({ success: true, sessionId, result });
 });
 
+// Serve preview video
+router.get('/preview/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  const filePath = path.join('exports', `${sessionId}.mp4`);
+
+  if (fs.existsSync(filePath)) {
+    res.sendFile(path.resolve(filePath));
+  } else {
+    res.status(404).send('Preview not found.');
+  }
+});
+
 export default router;
