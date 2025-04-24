@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
-import orchestrator from "./orchestrator.js";
+import { startProcessing } from "./orchestrator.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { log, error as logError } from "./utils/logger.js";
 import previewRoutes from './routes/previewRoutes.js';
@@ -53,7 +53,7 @@ app.post("/upload", upload.array("files"), async (req, res) => {
     }
 
     log("📦 Files copied", "Importing orchestrator...");
-    const result = await orchestrator(sessionId);
+    const result = await startProcessing(sessionId);
     res.json({ status: "success", sessionId, result });
   } catch (err) {
     logError("Upload Handler", err);
